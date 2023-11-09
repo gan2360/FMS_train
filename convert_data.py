@@ -36,14 +36,12 @@ def normalize_screen_coordinates(X, w, h):  # 把像素坐标归一化到-1和1�
     return X / w * 2 - [1, h / w]
 
 def process_item(d): # 一个数据对
-    # d.pop()
-    d[2] = 1
-    points_3d = d[1]
-    two_d_kpts = convert_3dto2d(points_3d)
-    two_d_kpts_n = normalize_screen_coordinates(two_d_kpts, 1280, 720)
-    two_d_kpts_n[two_d_kpts_n > 1] = 1
-    two_d_kpts_n[two_d_kpts_n < -1] = -1
-    d.append(two_d_kpts_n)
+    if len(d) >= 4: # 如果已经添加了2d坐标点，就直接返回
+        return d
+    points_3d = d[1] # 获取3d的gt
+    two_d_kpts = convert_3dto2d(points_3d / 10)
+    # two_d_kpts_n = normalize_screen_coordinates(two_d_kpts, 1280, 720)  # 归一化2d坐标
+    d.append(two_d_kpts)
     return d
 
 def process_phase(start, end, rootpath):
@@ -52,31 +50,36 @@ def process_phase(start, end, rootpath):
 def get_one_item(index):
     data_path = 'D:\\Fms_train\\Dataset_pre\\PIMDataset_faster\\PIMDataset_faster\\valid\\0'
     d = pickle.load(open(data_path + '/'+str(index) + '.p', 'rb'))
-    print(d)
+    return d
+
 
 
 if __name__ == '__main__':
     # 一个数据项包含：0：（120，120）压力， 1：（22，3）3d，2：（3，640，720）图像，3：（22，2）2d
-    data_path = 'D:\\Fms_train\\Dataset_pre\\PIMDataset_faster\\PIMDataset_faster\\valid\\1254'
-    train_log_path = 'D:\\Fms_train\\Dataset_pre\\PIMDataset_faster\\PIMDataset_faster\\valid\\temp_log.p'
+    data_path = 'D:\\Fms_train\\Dataset_pre\\PIMDataset_faster\\PIMDataset_faster\\valid\\0'
+    train_log_path = 'D:\\Fms_train\\Dataset_pre\\PIMDataset_faster\\PIMDataset_faster\\train\\temp_log.p'
+    # log_data = pickle.load(open(train_log_path, 'rb'))
     """
     # 修改数据集log文件
-    log_data = pickle.load(open(train_log_path, 'rb'))
-    new_log_data = np.array([0, 1254, 2508])
-    with open('D:\\Fms_train\\Dataset_pre\\PIMDataset_faster\\PIMDataset_faster\\valid\\temp_log.p', 'wb') as f:
+    
+    new_log_data = np.array([0, 3066])
+    with open('D:\\Fms_train\\Dataset_pre\\PIMDataset_faster\\PIMDataset_faster\\train\\temp_log.p', 'wb') as f:
         pickle.dump(new_log_data, f)
     
     # """
 
     """
     # convert data # 
-    for i in trange(1254, 2058, desc='process dataset'):
-        d = pickle.load(open(data_path + '/' + str(i) + '.p', "rb"))
+    for i in trange(0, 1054, desc='process dataset'):
+        d = pickle.load(open(data_path + '/' + str(i) + '.p', "rb")) # 一个数据项包含：0：（120，120）压力， 1：（22，3）3d，2：（3，640，720）图像，3：（22，2）2d
         new_d = process_item(d)
         with open(data_path + '/' + str(i) + '.p', "wb") as f:
             pickle.dump(new_d, f)
     # """
-    get_one_item(0)
+
+    # d = get_one_item(1000)
+    # print(d)
+
 
 
 
