@@ -15,6 +15,7 @@ import cv2
 
 model_ckpts_path = 'D:/Users/Gan/FMS_algorithm/singlePeople_61_0.0001_0.5_best.path.tar'
 data_set_root = 'D:\\Users\\Gan\\FMS_algorithm\\PIMDataset_faster/'
+video_path = 'D:\\Users\\Gan\\FMS_system\\fms_predict_sdk_v3-single_process\\fms_predict_sdk_v3-single_process\\fmsTestData'
 
 
 def calculate_mpjpe(model, test_dataset):
@@ -115,8 +116,8 @@ def denormalize_img(normalized_img):
 
 
 if __name__ == '__main__':
-    # hrnetModel = HRnetModelPrediction()
-    # yoloModel = YoloModelPrediction()
+    hrnetModel = HRnetModelPrediction()
+    yoloModel = YoloModelPrediction()
     # frame = cv2.imread('./1.jpg')
     # cv2.imshow('img', frame)
     # cv2.waitKey(0)
@@ -130,7 +131,6 @@ if __name__ == '__main__':
     model.to(device)
     model.eval()
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-    bar = ProgressBar(len(test_dataloader))
     mpjpe = 0.0
     num_samples = 0
     with torch.no_grad():
@@ -138,19 +138,19 @@ if __name__ == '__main__':
             target_3d = sample_batched["key_points_3d"].float().to(device)
             input_2d = sample_batched["key_points_2d"].float().to(device)
             input_pressure = sample_batched["pressure"].float().to(device)
-            # input_image = sample_batched["image"].cpu().numpy()[0][0]
-            # d_img = denormalize_img(input_image)
-            # c_img = d_img.transpose(2, 1, 0)
-            # try:
-            # kpts_2d = get_pose2D(hrnetModel, yoloModel, c_img)
-            # norm_kpts_2d = normalize_screen_coordinates(kpts_2d, 640, 720)
-            # norm_kpts_2d = norm_kpts_2d.reshape(1, 1, 22, 2)
-            # norm_kpts_2d = torch.from_numpy(norm_kpts_2d).float().to(device)
-            # except Exception as e:
-            #     print(str(e))
-            #     continue
+            input_image = sample_batched["image"].cpu().numpy()[0][0]
+            d_img = denormalize_img(input_image)
+            c_img = d_img.transpose(2, 1, 0)
+            try:
+                kpts_2d = get_pose2D(hrnetModel, yoloModel, c_img)
+                norm_kpts_2d = normalize_screen_coordinates(kpts_2d, 640, 720)
+                norm_kpts_2d = norm_kpts_2d.reshape(1, 1, 22, 2)
+                norm_kpts_2d = torch.from_numpy(norm_kpts_2d).float().to(device)
+            except Exception as e:
+                print(str(e))
+                continue
             # c_img = cv2.cvtColor(c_img, cv2.COLOR_BGR2RGB)
-            pred_3d = model([input_2d, input_pressure])
+            pred_3d = model([norm_kpts_2d, input_pressure])
             # pred_3d = pred_3d.cpu().numpy()[0][0]
             b = torch.tensor([-800.0, -800.0, 0.0]).to(device)
             resolution = 100
