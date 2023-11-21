@@ -28,15 +28,14 @@ class DropPath(nn.Module):
 
 class PatchEmbed(nn.Module):
     def __init__(self, image_size=224, patch_size=16, in_c=3, embed_dim=768, norm_layer=None):
-        
         super().__init__()
         image_size = (image_size, image_size)
+        # image_size = (256, 64)
         patch_size = (patch_size, patch_size)
         self.image_size = image_size
         self.patch_size = patch_size
         self.grid_size = (image_size[0] // patch_size[0], image_size[1] // patch_size[1])
         self.num_patches = self.grid_size[0] * self.grid_size[1]
-
         self.proj = nn.Conv2d(in_c, embed_dim, kernel_size=patch_size, stride=patch_size)
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
 
@@ -191,7 +190,7 @@ class TactileTransformer(nn.Module):
 
     def forward_features(self, x):
         
-        x = self.patch_embed(x)  
+        x = self.patch_embed(x)  # []
         cls_token = self.cls_token.expand(x.shape[0], -1, -1)
         if self.dist_token is None:
             x = torch.cat((cls_token, x), dim=1) 

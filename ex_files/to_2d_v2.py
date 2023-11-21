@@ -12,7 +12,6 @@ import numpy as np
 import torch
 from pyquaternion import Quaternion
 
-data_path = 'D:\\Fms_train\\Dataset_pre\\PIMDataset_faster\\PIMDataset_faster\\train\\0'
 orientation = np.array([0.1407056450843811, -0.1500701755285263, -0.755240797996521, 0.6223280429840088])
 translation = np.array([1.8411070556640625, 4.95528466796875, 1.5634454345703125])
 
@@ -34,6 +33,8 @@ def normalize_screen_coordinates(X, w, h):
 
     # Normalize so that [0, w] is mapped to [-1, 1], while preserving the aspect ratio
     return X / w * 2 - [1, h / w]
+
+
 def qinverse(q, inplace=False):
     # We assume the quaternion to be normalized
     if inplace:
@@ -167,10 +168,11 @@ def project_to_2d(X, camera_params):
     tan = torch.sum(p * XX, dim=len(XX.shape) - 1, keepdim=True)
 
     XXX = XX * (radial + tan) + p * r2
-
     return f * XXX + c
+
+
 def change_one(item):
-    pos_3d_world =item[1]
+    pos_3d_world =item
     orientation = np.array([0.1407056450843811, -0.1500701755285263, -0.755240797996521, 0.6223280429840088])
     translation = np.array([1.8411070556640625, 4.95528466796875, 1.5634454345703125])
     focal_length = np.array([1145.0494384765625, 1143.7811279296875])
@@ -188,8 +190,3 @@ def change_one(item):
     return positions_2d
 
 
-if __name__ == '__main__':
-    item_0 = pickle.load(open(data_path+'/'+str(0) + '.p', 'rb'))
-    two_d = change_one(item_0)
-    print(two_d)
-    pass

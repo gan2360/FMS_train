@@ -48,13 +48,11 @@ class VaTPose(nn.Module):
 
     def forward(self, input):
         keypoints2d = input[0] # (batch, frames, 22, 2)
-        tactile_data = input[1]
-        
+        tactile_data = input[1]# (batch, frames,120, 120)
         tactile_feature = self.tactile_encoder(tactile_data) # (batch, 22, 1)
         shape = tactile_feature.shape
         tactile_feature = tactile_feature.reshape(shape[0], 1, shape[1], 1)
         tactile_feature = tactile_feature.repeat(1, int(2*self.windowSize), 1, 1) # (batch, frames, 22, 1)
-        
         x = torch.cat((keypoints2d, tactile_feature), axis=3)
         
         B, F, J, C = x.shape
@@ -62,13 +60,12 @@ class VaTPose(nn.Module):
 
         x = self.encoder(x) 
         x = x.permute(0, 2, 1).contiguous()
-        
         x = self.Transformer(x) 
         
         x_VTE = x
         x_VTE = x_VTE.permute(0, 2, 1).contiguous()
-        x_VTE = self.fcn_1(x_VTE) 
-        x_VTE = rearrange(x_VTE, 'b (j c) f -> b f j c', j=J).contiguous() 
+        x_VTE = self.fcn_1(x_VTE)
+        x_VTE = rearrange(x_VTE, 'b (j c) f -> b f j c', j=J).contiguous()
         
         x = self.Transformer_reduce(x) 
         

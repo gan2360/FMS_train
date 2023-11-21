@@ -6,7 +6,7 @@ from __future__ import print_function
 from numba import jit
 import os.path
 import numpy as np
-from skimage import io
+# from skimage import io
 from scipy.optimize import linear_sum_assignment
 import argparse
 from filterpy.kalman import KalmanFilter

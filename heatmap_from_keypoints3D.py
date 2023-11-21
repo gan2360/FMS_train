@@ -69,6 +69,6 @@ def heatmap_from_keypoint(keypoint): # (22, 3)
     for k in range(22):
         dis = np.sqrt((pos_x-frame[k,0])**2 + (pos_y-frame[k,1])**2 + (pos_z-frame[k,2])**2)
         g = gaussian(dis, 0.001, 1)
-        heatmap[k,:,:,:] = softmax(g) /0.25 #1:0.25; 0.5:0.8
+        heatmap[k,:,:,:] = softmax(g) / 0.25 # 1:0.25; 0.5:0.8
     return keypoint, heatmap
 

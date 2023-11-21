@@ -101,7 +101,7 @@ class HRnetModelPrediction:
         # args = parse_args()
         # reset_config(args)
         # self.pose_model = model_load(cfg)
-        self.pose_model = onnxruntime.InferenceSession('D:\\GuoJ\\fms_predict_sdk_v4\\rawModel\\lib\\hrnet\\hrnet_model.onnx',providers=['CUDAExecutionProvider'])
+        self.pose_model = onnxruntime.InferenceSession('D:\\Users\\Gan\\FMS_algorithm\\hrnet_model.onnx',providers=['CUDAExecutionProvider'])
 
         
     def gen_video_kpts(self, yoloModel, frame, det_dim=416, num_peroson=1, gen_output=False):
@@ -121,8 +121,10 @@ class HRnetModelPrediction:
         bboxs, scores = yoloModel.yolo_human_det(frame)
         if bboxs is None or not bboxs.any():
             print('No person detected!')
-            bboxs = bboxs_pre
-            scores = scores_pre
+            # bboxs = bboxs_pre
+            # scores = scores_pre
+            bboxs = None
+            scores = None
         else:
             bboxs_pre = copy.deepcopy(bboxs) 
             scores_pre = copy.deepcopy(scores) 

@@ -26,8 +26,9 @@ import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel
 
-from model import VaTPose, SpatialSoftmax3D
-from data_loader import sample_data
+from rawModel.vaTPose import VaTPose
+from spatialSoftmax3D import SpatialSoftmax3D
+from DataLoaderV2 import sample_data
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--train_continue', type=bool, default=False, help='Set true if eval time')

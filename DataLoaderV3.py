@@ -4,7 +4,7 @@
 @IDE     ：PyCharm
 @Author  ：FMS
 @Date    ：2023/9/27 15:48
-@Des     ：10hz,原始训练
+@Des     ： 有问题
 """
 import os
 import numpy as np
@@ -12,8 +12,11 @@ from torch.utils.data import Dataset
 import pickle
 from heatmap_from_keypoints3D import heatmap_from_keypoint
 
+extra_matrix = np.zeros((256, 64))
+
 
 def window_select(log, path, f, idx, window):
+    # window = 1  # 临时用
     # return visual, tactile, heatmap, keypoint, visual_frame, tactile_frame
     if window == 0:  # window为0的话，直接会返回某个idx的数据
         d = pickle.load(open(path + '/' + str(idx) + '.p', "rb"))
@@ -21,8 +24,8 @@ def window_select(log, path, f, idx, window):
         keypoint = d[1]
         visual = d[3]
         keypoint, heatmap = heatmap_from_keypoint(keypoint)  # 获取热力图
-        return np.reshape(visual, (22,2)), np.reshape(tactile, (1, 120, 120)), heatmap, keypoint, np.reshape(
-            visual, (22,2)), np.reshape(d[0], (1, 120, 120))
+        return np.reshape(visual, (22,2)), np.reshape(extra_matrix, (1, 256, 64)), heatmap, keypoint, np.reshape(
+            visual, (22,2)), np.reshape(d[0], (1, 256, 64))
     max_len = log[f + 1]  # log是记录数据集序列的np数组，f代表当前的数据集序列的下标
     min_len = log[f] #
     l = max([min_len, idx - window])
@@ -31,32 +34,29 @@ def window_select(log, path, f, idx, window):
     dh = pickle.load(open(path + '/' + str(idx) + '.p', "rb"))
     keypoint = dh[1]
     keypoint, heatmap = heatmap_from_keypoint(keypoint)
-
     visual_frame = np.reshape(dh[3], (1, 22, 2))
-    tactile_frame = np.reshape(dh[0], (1, 120, 120))
-
-    visual = np.empty((2 * window, 22, 2))
-    tactile = np.empty((2 * window, 120, 120))
-
+    tactile_frame = np.reshape(extra_matrix, (1, 256, 64))
+    visual = np.empty((window, 22, 2))
+    tactile = np.empty((window, 256, 64))
     if u - l < window:
-        tactile = tactile_frame.repeat(int(2 * window), axis=0)
-        visual = visual_frame.repeat(int(2 * window), axis=0).reshape((-1, 22, 2))
+        tactile = tactile_frame.repeat((window), axis=0)
+        visual = visual_frame.repeat((window), axis=0).reshape((-1, 22, 2))
         return visual, tactile, heatmap, keypoint, visual_frame, tactile_frame # 加了frame就是多加一个维度
 
     if l == min_len:
-        for i in range(min_len, min_len + 2 * window):
+        for i in range(min_len, min_len + window):
             d = pickle.load(open(path + '/' + str(i) + '.p', "rb"))
-            tactile[i - min_len, :, :] = d[0]
+            tactile[i - min_len, :, :] = extra_matrix
             visual[i - min_len, :, :] = d[3]
 
         visual = visual.reshape((-1, 22,2))
         return visual, tactile, heatmap, keypoint, visual_frame, tactile_frame
 
     elif u == max_len:
-        for i in range(max_len - 2 * window, max_len):
+        for i in range(max_len - window, max_len):
             d = pickle.load(open(path + '/' + str(i) + '.p', "rb"))
-            tactile[i - (max_len - 2 * window), :, :] = d[0]
-            visual[i - (max_len - 2 * window), :, :] = d[3]
+            tactile[i - (max_len - window), :, :] = extra_matrix
+            visual[i - (max_len - window), :, :] = d[3]
 
         visual = visual.reshape((-1, 22,2))
         return visual, tactile, heatmap, keypoint, visual_frame, tactile_frame
@@ -64,7 +64,7 @@ def window_select(log, path, f, idx, window):
     else:
         for i in range(l, u):
             d = pickle.load(open(path + '/' + str(i) + '.p', "rb"))
-            tactile[i - l, :, :] = d[0]
+            tactile[i - l, :, :] = extra_matrix
             visual[i - l, :, :] = d[3]
 
         visual = visual.reshape((-1, 22,2))
@@ -112,3 +112,4 @@ class sample_data(Dataset):
         if self.subsample > 1:
             tactile = get_subsample(tactile, self.subsample)
         return visual, tactile, heatmap, keypoint, visual_frame, tactile_frame, idx
+
