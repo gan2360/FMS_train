@@ -101,10 +101,20 @@ def normalize_screen_coordinates(X, w, h):
     return X / w * 2 - [1, h / w]
 
 
+def de_normalize_3d(raw_kpts_3d):
+    b = torch.tensor([-800.0, -800.0, 0.0]).to(device)
+    resolution = 100
+    scale = 19
+    pred_3d = raw_kpts_3d * scale
+    pred_3d = pred_3d * resolution + b
+    pred_3d = pred_3d / 10
+    return pred_3d
+
+
 if __name__ == '__main__':
     device = 'cuda:0'
     pressure = np.zeros((1, 1, 120, 120)).astype(np.float32)
-    pressure = torch.from_numpy(pressure)
+    pressure = torch.from_numpy(pressure).to(device)
     hrnetModel = HRnetModelPrediction()
     yoloModel = YoloModelPrediction()
     img = local_camera.get_frame()
@@ -115,11 +125,16 @@ if __name__ == '__main__':
     model.eval()
     with torch.no_grad():
         kpts_2d = get_pose2D(hrnetModel, yoloModel, img)
-        norm_kpts_2d = normalize_screen_coordinates(kpts_2d, 640, 720)
+        norm_kpts_2d = normalize_screen_coordinates(kpts_2d, 1000, 1002)
         norm_kpts_2d = norm_kpts_2d.reshape(1, 1, 22, 2)
         norm_kpts_2d = torch.from_numpy(norm_kpts_2d).float().to(device)
         pred_3d = model([norm_kpts_2d, pressure])
-    show_keypoints(pred_3d.cpu().numpy()[0][0])
+        b = torch.tensor([-800.0, -800.0, 0.0]).to(device)
+        resolution = 100
+        scale = 19
+        pred_3d = pred_3d * scale
+        pred_3d = pred_3d * resolution + b
+        pred_3d = pred_3d / 10
     d = get_one_item()
     target_3d = d[1]
     show_keypoints(target_3d / 10)

@@ -115,6 +115,16 @@ def denormalize_img(normalized_img):
     return img
 
 
+def de_normalize_3d(raw_kpts_3d, device):
+    b = torch.tensor([-800.0, -800.0, 0.0]).to(device)
+    resolution = 100
+    scale = 19
+    pred_3d = raw_kpts_3d * scale
+    pred_3d = pred_3d * resolution + b
+    pred_3d = pred_3d / 10
+    return pred_3d
+
+
 if __name__ == '__main__':
     hrnetModel = HRnetModelPrediction()
     yoloModel = YoloModelPrediction()
@@ -150,14 +160,15 @@ if __name__ == '__main__':
                 print(str(e))
                 continue
             # c_img = cv2.cvtColor(c_img, cv2.COLOR_BGR2RGB)
-            pred_3d = model([norm_kpts_2d, input_pressure])
+            pred_3d = model([input_2d, input_pressure])
             # pred_3d = pred_3d.cpu().numpy()[0][0]
-            b = torch.tensor([-800.0, -800.0, 0.0]).to(device)
-            resolution = 100
-            scale = 19
-            pred_3d = pred_3d * scale
-            pred_3d = pred_3d * resolution + b
-            pred_3d = pred_3d / 10
+            # b = torch.tensor([-800.0, -800.0, 0.0]).to(device)
+            # resolution = 100
+            # scale = 19
+            # pred_3d = pred_3d * scale
+            # pred_3d = pred_3d * resolution + b
+            # pred_3d = pred_3d / 10
+            pred_3d = de_normalize_3d(pred_3d, device)
             # show_keypoints(pred_3d)
             temp_mpjpe = calculate_batch_mpjpe(pred_3d, target_3d / 10)
             mpjpe += temp_mpjpe
