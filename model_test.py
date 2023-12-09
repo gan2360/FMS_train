@@ -4,7 +4,7 @@ from progressbar import ProgressBar
 from tqdm import trange, tqdm
 from torch.utils.data import DataLoader
 import numpy as np
-from data_loader_mini import PkDataset
+from test_dataset import PkDataset
 from rawModel.vaTPose import VaTPose
 from my_utils.visual_3d import show_keypoints
 from my_utils.visual_2d import show_2d_kpts
@@ -125,14 +125,35 @@ def de_normalize_3d(raw_kpts_3d, device):
     return pred_3d
 
 
+def flip_2d(kpts_2d):
+    mid_axis  = 720 / 2
+    kpts_2d[:, 1] = - kpts_2d[:, 1] + mid_axis * 2
+    return kpts_2d
+
+
+def show_2d_on_images(img, kpts_2d):
+    kpts_2d = kpts_2d.tolist()
+    BODY_22_pairs = np.array(
+        [[14, 13], [13, 0], [14, 19], [14, 16], [19, 20], [20, 21], [16, 17], [17, 18], [0, 1], [1, 2], [2, 3], [0, 7],
+         [7, 8], [8, 9], [14, 15], [9, 11], [11, 12], [9, 10],
+         [3, 5], [5, 6], [3, 4]])
+    node_color = (0, 0, 255)
+    node_radius = 2
+    line_color = (0, 255, 0)
+    for point in kpts_2d:
+        x,y = point
+        cv2.circle(img, (int(x), int(y)), node_radius, node_color, -1)
+    for line in BODY_22_pairs:
+        start_point = [int(kpts_2d[line[0]][0]), int(kpts_2d[line[0]][1])]
+        end_point = [int(kpts_2d[line[1]][0]), int(kpts_2d[line[1]][1])]
+        cv2.line(img, start_point, end_point, line_color, thickness=2)
+    cv2.imshow('img', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 if __name__ == '__main__':
     hrnetModel = HRnetModelPrediction()
     yoloModel = YoloModelPrediction()
-    # frame = cv2.imread('./1.jpg')
-    # cv2.imshow('img', frame)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-    # kpts_2d = get_pose2D(hrnetModel, yoloModel, frame)
     test_dataset = PkDataset(data_set_root, "valid")
     model = VaTPose(0.5)
     checkpoints = torch.load(model_ckpts_path, map_location='cuda:0')
@@ -148,29 +169,27 @@ if __name__ == '__main__':
             target_3d = sample_batched["key_points_3d"].float().to(device)
             input_2d = sample_batched["key_points_2d"].float().to(device)
             input_pressure = sample_batched["pressure"].float().to(device)
-            input_image = sample_batched["image"].cpu().numpy()[0][0]
-            d_img = denormalize_img(input_image)
-            c_img = d_img.transpose(2, 1, 0)
-            try:
-                kpts_2d = get_pose2D(hrnetModel, yoloModel, c_img)
-                norm_kpts_2d = normalize_screen_coordinates(kpts_2d, 640, 720)
-                norm_kpts_2d = norm_kpts_2d.reshape(1, 1, 22, 2)
-                norm_kpts_2d = torch.from_numpy(norm_kpts_2d).float().to(device)
-            except Exception as e:
-                print(str(e))
-                continue
+            zero_pressure = torch.zeros((1, 1, 120, 120), device=device, dtype=torch.float)
+            # input_image = sample_batched["image"].cpu().numpy()[0][0]
+            # d_img = denormalize_img(input_image)
+            # c_img = d_img.transpose(2, 1, 0)
+            # try:
+            #     kpts_2d = get_pose2D(hrnetModel, yoloModel, c_img)
+            #     norm_kpts_2d = normalize_screen_coordinates(kpts_2d, 1000, 1002)
+            #     norm_kpts_2d = norm_kpts_2d.reshape(1, 1, 22, 2)
+            #     norm_kpts_2d = torch.from_numpy(norm_kpts_2d).float().to(device)
+            # except Exception as e:
+            #     print(str(e))
+            #     continue
             # c_img = cv2.cvtColor(c_img, cv2.COLOR_BGR2RGB)
             pred_3d = model([input_2d, input_pressure])
-            # pred_3d = pred_3d.cpu().numpy()[0][0]
-            # b = torch.tensor([-800.0, -800.0, 0.0]).to(device)
-            # resolution = 100
-            # scale = 19
-            # pred_3d = pred_3d * scale
-            # pred_3d = pred_3d * resolution + b
-            # pred_3d = pred_3d / 10
             pred_3d = de_normalize_3d(pred_3d, device)
-            # show_keypoints(pred_3d)
-            temp_mpjpe = calculate_batch_mpjpe(pred_3d, target_3d / 10)
+
+            pred_3d_z = model([input_2d, zero_pressure])
+            pred_3d_z = de_normalize_3d(pred_3d_z, device)
+
+            # temp_mpjpe = calculate_batch_mpjpe(pred_3d, target_3d / 10)
+            temp_mpjpe = calculate_batch_mpjpe(pred_3d, pred_3d_z)
             mpjpe += temp_mpjpe
             num_samples += 1
         mpjpe /= num_samples

@@ -62,10 +62,10 @@ class VaTPose(nn.Module):
         x = x.permute(0, 2, 1).contiguous()
         x = self.Transformer(x) 
         
-        x_VTE = x
-        x_VTE = x_VTE.permute(0, 2, 1).contiguous()
-        x_VTE = self.fcn_1(x_VTE)
-        x_VTE = rearrange(x_VTE, 'b (j c) f -> b f j c', j=J).contiguous()
+        # x_VTE = x
+        # x_VTE = x_VTE.permute(0, 2, 1).contiguous()
+        # x_VTE = self.fcn_1(x_VTE)
+        # x_VTE = rearrange(x_VTE, 'b (j c) f -> b f j c', j=J).contiguous()
         
         x = self.Transformer_reduce(x) 
         

@@ -35,7 +35,6 @@ def remove_keypoint_artifact(data,threshold):
     return data
 
 def normize_keypoints(keypoint):
-
     '''
     Load triangulated, refined and transformed keypoint coordinate
     Build 3d voxel space
@@ -54,6 +53,7 @@ def normize_keypoints(keypoint):
     keypoint = normalize_with_range((keypoint - b)/resolution, max(size)-1, 0)
     keypoint = remove_keypoint_artifact(keypoint, threshold)
     return keypoint
+
 
 
 class PkDataset(Dataset):
@@ -81,11 +81,12 @@ class PkDataset(Dataset):
         image = data_item[2]
         keypoints_2d = data_item[3]
         norm_keypoints_2d = self.normalize_screen_coordinates(keypoints_2d, 1000, 1002)
-        pair_item = {'key_points_3d':norm_kpts_3d, 'pressure':pressure, 'key_points_2d':norm_keypoints_2d.reshape(1, 22, 2)}  # 两个都是tensor格式的, (batch, 22,3),(batch, 120, 120)
+        pair_item = {'key_points_3d': norm_kpts_3d, 'pressure': pressure, 'key_points_2d': norm_keypoints_2d.reshape(1, 22, 2), 'image': image.reshape((1, 3, 640, 720))}  # 两个都是tensor格式的, (batch, 22,3),(batch, 120, 120)
         return pair_item
 
     def __len__(self):
         return self.data_log[-1]
+        # return 5847 if self.mode == 'train' else 1254
 
 
 

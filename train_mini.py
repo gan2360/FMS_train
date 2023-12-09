@@ -19,6 +19,7 @@ import cv2
 import h5py
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from progressbar import ProgressBar
+from tqdm import tqdm
 import wandb
 
 import torch.distributed as dist
@@ -37,8 +38,8 @@ parser.add_argument('--dataset_dir', type=str, default='D:\\Users\\Gan\\FMS_algo
 parser.add_argument('--train_dir', type=str, default='./train_output/', help='Experiment path')
 parser.add_argument('--test_dir', type=str, default='./test_output/', help='test data path')
 parser.add_argument('--exp', type=str, default='singlePeople', help='Name of experiment')
-parser.add_argument('--ckpt', type=str, default='singlePeople_0.0001_0_best', help='loaded ckpt file')
-parser.add_argument('--epoch', type=int, default=200, help='The time steps you want to subsample the dataset to,500')  # 默认500
+parser.add_argument('--ckpt', type=str, default='singlePeople_16_0.0001_0.5_best', help='loaded ckpt file')
+parser.add_argument('--epoch', type=int, default=100, help='The time steps you want to subsample the dataset to,500')  # 默认500
 parser.add_argument('--decay_epoch', type=int, default=35, help='epoch to start linearly decaying the learning rate to 0')
 parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size,128')
@@ -84,7 +85,6 @@ if __name__ == '__main__':
         project="VaTPose",
         name="SinglePeople_0.0000_0_0",
     )
-
     np.random.seed(0)
     torch.manual_seed(0)
     model = VaTPose(args.window)
@@ -118,8 +118,8 @@ if __name__ == '__main__':
         train_loss = []
         val_loss = []
         print('training')
-        bar = ProgressBar(len(train_dataloader))
-        for i_batch, sample_batched in bar(enumerate(train_dataloader, 0)):
+        # bar = ProgressBar(len(train_dataloader))
+        for i_batch, sample_batched in enumerate(tqdm(train_dataloader, 'train model'), 0):
             model.train(True)
             visual = torch.tensor(sample_batched["key_points_2d"], dtype=torch.float, device=device)
             tactile = torch.tensor(sample_batched["pressure"], dtype=torch.float, device=device)
@@ -132,7 +132,8 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             train_loss.append(loss.item())
-            if i_batch % 300 == 0 and i_batch != 0:
+
+            if i_batch % 275 == 0 and i_batch != 0:
                 print("epoch:%d, [%d/%d] LR: %.6f, Loss: %.6f, Keypoint_loss: %.6f, "
                       "k_max_gt: %.6f, k_max_pred: %.6f, k_min_gt: %.6f, k_min_pred: %.6f, " % (
                           epoch, i_batch, len(train_dataloader), get_lr(optimizer), loss.item(), loss,
@@ -142,8 +143,8 @@ if __name__ == '__main__':
                 print("Now running on val set")
                 model.train(False)
                 keypoint_l2 = []
-                bar = ProgressBar(len(val_dataloader))
-                for i_batch, sample_batched in bar(enumerate(val_dataloader, 0)):
+                # bar = ProgressBar(len(val_dataloader))
+                for i_batch, sample_batched in enumerate(tqdm(val_dataloader, 'valid model'), 0):
                     visual = torch.tensor(sample_batched["key_points_2d"], dtype=torch.float, device=device)
                     tactile = torch.tensor(sample_batched["pressure"], dtype=torch.float, device=device)
                     keypoint = torch.tensor(sample_batched["key_points_3d"], dtype=torch.float, device=device)
@@ -165,13 +166,16 @@ if __name__ == '__main__':
                                   np.amin(keypoint.cpu().data.numpy()), np.amin(keypoint_out.cpu().data.numpy()),
                             ))
                         #
-
                     val_loss.append(loss.data.item())
                 scheduler.step(np.mean(val_loss)) #
                 wandb.log({'loss/valid_loss': np.mean(val_loss)}, step=valid_record_count)
                 valid_record_count += 1
                 print("val_loss_mean:", np.mean(val_loss))
                 if np.mean(val_loss) < best_val_loss:
+                    
+                    
+                    
+                    
                     print("new_best_keypoint_l2:", np.mean(val_loss))
                     best_val_loss = np.mean(val_loss)
                     torch.save({
